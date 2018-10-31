@@ -2,17 +2,19 @@ package com.gmail.burakkazkilinc.nerdeyesem;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.location.LocationProvider;
 import android.os.AsyncTask;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -32,7 +34,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private LocationManager locationManager;
     private String provider;
     Location location;
-    //double lat=38.453269,lng=27.216130;
     double lat, lng;
 
     @Override
@@ -40,14 +41,20 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //https://developers.zomato.com/api/v2.1/search?count=5&lat=38.453269&lon=27.216130&sort=real_distance&order=asc
         new JSONDownload().execute();
         liste = findViewById(R.id.list);
 
+        liste.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent = new Intent(getApplicationContext(), InfoActivity.class);
+                intent.putExtra("url", ""+restoran_listesi.get(position).getUrl());
+                startActivity(intent);
+            }
+        });
+
     }
 
-
-    /* Request updates at startup */
     @Override
     protected void onResume() {
         super.onResume();
@@ -57,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         locationManager.requestLocationUpdates(provider, 400, 1, this);
 
     }
-    /* Remove the locationlistener updates when Activity is paused */
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -68,20 +75,17 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     public void onLocationChanged(Location location) {
          lat = location.getLatitude();
          lng = location.getLongitude();
-
     }
 
     @Override
     public void onStatusChanged(String provider, int status, Bundle extras) {
         // TODO Auto-generated method stub
-
     }
 
     @Override
     public void onProviderEnabled(String provider) {
         Toast.makeText(this, "Enabled new provider " + provider,
                 Toast.LENGTH_SHORT).show();
-
     }
 
     @Override
@@ -89,7 +93,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         Toast.makeText(this, "Disabled provider " + provider,
                 Toast.LENGTH_SHORT).show();
     }
-
 
     private class JSONDownload extends AsyncTask<Void, Void, Void> {
         String url = "https://developers.zomato.com/api/v2.1/search?apikey=e6e83a56cad719f45089e52afd462b9d&count=5&";
@@ -99,27 +102,27 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             super.onPreExecute();
 
             Toast.makeText(MainActivity.this,"Data is downloading",Toast.LENGTH_SHORT).show();
-            //textView.setText("Güncel kur bilgisi indiriliyor.");
+
             restoran_listesi = new ArrayList<RestaurantInfo>();
 
-            // Get the location manager
             locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-            // Define the criteria how to select the locatioin provider -> use
-            // default
+
             Criteria criteria = new Criteria();
             provider = locationManager.getBestProvider(criteria, false);
             if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 location = locationManager.getLastKnownLocation(provider);
             }
-            location = locationManager.getLastKnownLocation(provider);
+            else
+            {
+                location = locationManager.getLastKnownLocation(provider);
+            }
 
-            // Initialize the location fields
             if (location != null) {
                 Log.i(TAG, "Provider " + provider + " has been selected.");
                 onLocationChanged(location);
             } else {
-                lat = 37.865707;
-                lng = 32.535865;
+                lat = 0;
+                lng = 0;
             }
 
             //konum bilgisinden gelen lat,long alınır
@@ -131,7 +134,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         @Override
         protected Void doInBackground(Void... arg0) {
             HttpHandler sh = new HttpHandler();
-            // Making a request to url and getting response
 
             String jsonStr = sh.makeServiceCall(url);
 
@@ -155,25 +157,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                             rinfo.setRating_text(rrating.getString("rating_text"));
                             rinfo.setUrl(restaurant.getString("url"));
                             restoran_listesi.add(rinfo);
-                           /* Log.i(TAG,"Restoran ismi:"+restaurant.getString("name"));
-                            Log.i(TAG,"Restoran url:"+restaurant.getString("url"));
-                            Log.i(TAG,"Restoran cuisines:"+restaurant.getString("cuisines"));
-                            Log.i(TAG,"Restoran address:"+rlocation.getString("address"));
-                            Log.i(TAG,"Restoran latitude:"+rlocation.getString("latitude"));
-                            Log.i(TAG,"Restoran longitude:"+rlocation.getString("longitude"));
-                            Log.i(TAG,"Restoran rating:"+rrating.getString("aggregate_rating"));
-                            Log.i(TAG,"Restoran rating_text:"+rrating.getString("rating_text"));*/
-
                         }
-
-                        //restoran ismi
-                        //restoran türü
-                        //restoran adresi
-                        //restoran ratingi
-                        //restoran url
-
-
-
 
                 } catch (final JSONException e) {
                     Log.e(TAG, "Json parsing error: " + e.getMessage());
